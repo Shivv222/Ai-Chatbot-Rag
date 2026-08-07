@@ -32,3 +32,21 @@ func AskGemini(prompt string) (string, error) {
 
 	return result.Text(), nil
 }
+
+func GenerateChatTitle(firstMessage string) (string, error) {
+
+	prompt := `Generate a short chat title (maximum 5 words).
+Return ONLY the title.
+Do not use quotes.
+Do not explain anything.
+
+User message:
+` + firstMessage
+
+	title, err := AskGemini(prompt)
+	if err != nil {
+		return "", err
+	}
+
+	return title, nil
+}

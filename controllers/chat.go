@@ -11,7 +11,12 @@ import (
 )
 
 type ChatRequest struct {
-	Prompt string `json:"prompt" binding:"required"`
+	SessionID int    `json:"session_id" binding:"required"`
+	Prompt    string `json:"prompt" binding:"required"`
+}
+
+type CreateSessionRequest struct {
+	FirstMessage string `json:"first_message" binding:"required"`
 }
 
 func Chat(c *gin.Context) {
@@ -58,6 +63,7 @@ func Chat(c *gin.Context) {
 	}
 
 	err = repository.SaveChat(
+		req.SessionID,
 		userID,
 		req.Prompt,
 		response,
@@ -90,4 +96,58 @@ func GetChatHistory(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{
 		"history": chats,
 	})
+}
+
+func CreateSession(c *gin.Context) {
+
+	var req CreateSessionRequest
+
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error": "Title is required",
+		})
+		return
+	}
+
+	userID := c.GetInt("userID")
+
+	title, err := services.GenerateChatTitle(req.FirstMessage)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"error": "Failed to generate chat title",
+		})
+		return
+	}
+
+	sessionID, err := repository.CreateSession(
+		userID,
+		title,
+	)
+
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"error": "Failed to create session",
+		})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"message":    "Session created successfully",
+		"session_id": sessionID,
+	})
+}
+
+func GetSessions(c *gin.Context) {
+
+	userID := c.GetInt("userID")
+
+	sessions, err := repository.GetSessions(userID)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"error": "Failed to fetch sessions",
+		})
+		return
+	}
+
+	c.JSON(http.StatusOK, sessions)
 }

@@ -32,5 +32,15 @@ func main() {
 
 	router.GET("/chat/history", middleware.AuthMiddleware(), controllers.GetChatHistory,)
 
+	router.POST("/session", middleware.AuthMiddleware(), controllers.CreateSession,)
+
+	router.GET("/sessions", middleware.AuthMiddleware(), controllers.GetSessions,)
+
+	router.GET("/sessions/:id", middleware.AuthMiddleware(), controllers.GetSessionChats,)
+
+	router.PUT("/sessions/:id", middleware.AuthMiddleware(), controllers.UpdateSession)
+
+	router.DELETE("/sessions/:id", middleware.AuthMiddleware(), controllers.DeleteSession,)
+
 	router.Run((":8080"))
 }

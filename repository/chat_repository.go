@@ -5,16 +5,17 @@ import (
 	"Ai-Chatbot-Rag/models"
 )
 
-func SaveChat(userID int, userMessage, aiResponse string) error {
+func SaveChat(sessionID int, userID int, userMessage, aiResponse string) error {
 
 	query := `
 	INSERT INTO chat_history
-	(user_id, user_message, ai_response)
-	VALUES ($1, $2, $3)
+	(session_id, user_id, user_message, ai_response)
+	VALUES ($1, $2, $3, $4)
 	`
 
 	_, err := config.DB.Exec(
 		query,
+		sessionID,
 		userID,
 		userMessage,
 		aiResponse,
