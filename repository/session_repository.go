@@ -8,7 +8,7 @@ import (
 func CreateSession(userID int, title string) (int, error) {
 
 	query := `
-	INSERT INTO chat_sessions(user_id, title)
+	INSERT INTO sessions(user_id, title)
 	VALUES($1, $2)
 	RETURNING id
 	`
@@ -33,7 +33,7 @@ func GetSessions(userID int) ([]models.ChatSession, error) {
 
 	query := `
 	SELECT id, user_id, title, created_at
-	FROM chat_sessions
+	FROM sessions
 	WHERE user_id = $1
 	ORDER BY created_at DESC
 	`
@@ -116,7 +116,7 @@ func GetSessionChats(sessionID int, userID int) ([]models.ChatHistory, error) {
 func UpdateSessionTitle(sessionID int, userID int, title string) error {
 
 	query := `
-	UPDATE chat_sessions
+	UPDATE sessions
 	SET title = $1
 	WHERE id = $2
 	AND user_id = $3
@@ -135,7 +135,7 @@ func UpdateSessionTitle(sessionID int, userID int, title string) error {
 func DeleteSession(sessionID int, userID int) error {
 
 	query := `
-	DELETE FROM chat_sessions
+	DELETE FROM sessions
 	WHERE id = $1
 	AND user_id = $2
 	`

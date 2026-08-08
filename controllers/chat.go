@@ -46,6 +46,7 @@ func Chat(c *gin.Context) {
 	builder.WriteString("Previous Conversation:\n\n")
 
 	for i := len(recentChats) - 1; i >= 0; i-- {
+
 		builder.WriteString(fmt.Sprintf(
 			"User: %s\n",
 			recentChats[i].UserMessage,
@@ -57,12 +58,18 @@ func Chat(c *gin.Context) {
 		))
 	}
 
-	// 2. Generate RAG answer
-	ragResponse, err := services.AskRAG(req.Prompt)
+	// 2. Generate RAG answer and retrieve sources
+	ragResponse, sources, err := services.AskRAG(
+		req.Prompt,
+		userID,
+	)
 
 	if err != nil {
+
+		fmt.Println("RAG ERROR:", err)
+
 		c.JSON(http.StatusInternalServerError, gin.H{
-			"error": "Failed to generate RAG response",
+			"error": err.Error(),
 		})
 		return
 	}
@@ -98,6 +105,7 @@ func Chat(c *gin.Context) {
 	)
 
 	if err != nil {
+
 		fmt.Println("SAVE CHAT ERROR:", err)
 
 		c.JSON(http.StatusInternalServerError, gin.H{
@@ -106,9 +114,10 @@ func Chat(c *gin.Context) {
 		return
 	}
 
-	// 6. Return response
+	// 6. Return response and sources
 	c.JSON(http.StatusOK, gin.H{
 		"response": response,
+		"sources":  sources,
 	})
 }
 

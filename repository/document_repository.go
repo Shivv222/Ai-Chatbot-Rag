@@ -6,6 +6,13 @@ import (
 	"strings"
 )
 
+type SimilarChunk struct {
+	ChunkText  string
+	DocumentID int
+	FileName   string
+	Similarity float64
+}
+
 func SaveDocument(userID int, fileName, filePath string) (int, error) {
 
 	query := `
@@ -84,7 +91,8 @@ func SaveChunkEmbedding(chunkID int, embedding []float32) error {
 func SearchSimilarChunks(
 	embedding []float32,
 	limit int,
-) ([]string, error) {
+	userID int,
+) ([]SimilarChunk, error) {
 
 	values := make([]string, len(embedding))
 
@@ -95,10 +103,17 @@ func SearchSimilarChunks(
 	vector := "[" + strings.Join(values, ",") + "]"
 
 	query := `
-	SELECT chunk_text
-	FROM document_chunks
-	WHERE embedding IS NOT NULL
-	ORDER BY embedding <=> $1
+	SELECT
+		dc.chunk_text,
+		d.id,
+		d.file_name,
+		1 - (dc.embedding <=> $1) AS similarity
+	FROM document_chunks dc
+	JOIN documents d
+		ON dc.document_id = d.id
+	WHERE dc.embedding IS NOT NULL
+	AND d.user_id = $3
+	ORDER BY dc.embedding <=> $1
 	LIMIT $2
 	`
 
@@ -106,28 +121,36 @@ func SearchSimilarChunks(
 		query,
 		vector,
 		limit,
+		userID,
 	)
+
 	if err != nil {
 		return nil, err
 	}
+
 	defer rows.Close()
 
-	var chunks []string
+	var results []SimilarChunk
 
 	for rows.Next() {
 
-		var chunk string
+		var result SimilarChunk
 
-		if err := rows.Scan(&chunk); err != nil {
+		if err := rows.Scan(
+			&result.ChunkText,
+			&result.DocumentID,
+			&result.FileName,
+			&result.Similarity,
+		); err != nil {
 			return nil, err
 		}
 
-		chunks = append(chunks, chunk)
+		results = append(results, result)
 	}
 
 	if err := rows.Err(); err != nil {
 		return nil, err
 	}
 
-	return chunks, nil
+	return results, nil
 }
