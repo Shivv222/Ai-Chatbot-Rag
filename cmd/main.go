@@ -42,5 +42,7 @@ func main() {
 
 	router.DELETE("/sessions/:id", middleware.AuthMiddleware(), controllers.DeleteSession,)
 
+	router.POST("/documents/upload", middleware.AuthMiddleware(), controllers.UploadDocument,)
+
 	router.Run((":8080"))
 }

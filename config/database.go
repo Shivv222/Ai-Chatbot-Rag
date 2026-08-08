@@ -13,10 +13,10 @@ var DB *sql.DB
 func ConnectDB() {
 
 	host := "localhost"
-	port := 5432
+	port := 5433
 	user := "postgres"
-	password := "MySecure@123"
-	dbname := "ai-chatbot"
+	password := "postgres"
+	dbname := "rag_db"
 
 	psqlInfo := fmt.Sprintf(
 		"host=%s port=%d user=%s password=%s dbname=%s sslmode=disable",
@@ -32,8 +32,8 @@ func ConnectDB() {
 
 	err = DB.Ping()
 	if err != nil {
-		log.Fatal("Error connecting to database:", err)
+		log.Fatal("Error connecting database:", err)
 	}
 
-	log.Println("✅ Database Connected Successfully")
+	log.Println("✅ Connected to Docker PostgreSQL")
 }

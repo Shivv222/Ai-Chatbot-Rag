@@ -32,6 +32,7 @@ func Chat(c *gin.Context) {
 
 	userID := c.GetInt("userID")
 
+	// 1. Load recent conversation history
 	recentChats, err := repository.GetRecentChats(userID, 5)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{
@@ -45,14 +46,40 @@ func Chat(c *gin.Context) {
 	builder.WriteString("Previous Conversation:\n\n")
 
 	for i := len(recentChats) - 1; i >= 0; i-- {
-		builder.WriteString(fmt.Sprintf("User: %s\n", recentChats[i].UserMessage))
-		builder.WriteString(fmt.Sprintf("AI: %s\n\n", recentChats[i].AIResponse))
+		builder.WriteString(fmt.Sprintf(
+			"User: %s\n",
+			recentChats[i].UserMessage,
+		))
+
+		builder.WriteString(fmt.Sprintf(
+			"AI: %s\n\n",
+			recentChats[i].AIResponse,
+		))
 	}
 
-	builder.WriteString(fmt.Sprintf("Current User: %s", req.Prompt))
+	// 2. Generate RAG answer
+	ragResponse, err := services.AskRAG(req.Prompt)
+
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"error": "Failed to generate RAG response",
+		})
+		return
+	}
+
+	// 3. Add RAG response to conversation context
+	builder.WriteString("Document Context Answer:\n")
+	builder.WriteString(ragResponse)
+	builder.WriteString("\n\n")
+
+	builder.WriteString(fmt.Sprintf(
+		"Current User: %s",
+		req.Prompt,
+	))
 
 	fullPrompt := builder.String()
 
+	// 4. Generate final response using Gemini
 	response, err := services.AskGemini(fullPrompt)
 
 	if err != nil {
@@ -62,6 +89,7 @@ func Chat(c *gin.Context) {
 		return
 	}
 
+	// 5. Save chat history
 	err = repository.SaveChat(
 		req.SessionID,
 		userID,
@@ -70,12 +98,15 @@ func Chat(c *gin.Context) {
 	)
 
 	if err != nil {
+		fmt.Println("SAVE CHAT ERROR:", err)
+
 		c.JSON(http.StatusInternalServerError, gin.H{
-			"error": "Failed to save chat history",
+			"error": err.Error(),
 		})
 		return
 	}
 
+	// 6. Return response
 	c.JSON(http.StatusOK, gin.H{
 		"response": response,
 	})
@@ -125,8 +156,10 @@ func CreateSession(c *gin.Context) {
 	)
 
 	if err != nil {
+		fmt.Println("CREATE SESSION ERROR:", err)
+
 		c.JSON(http.StatusInternalServerError, gin.H{
-			"error": "Failed to create session",
+			"error": err.Error(),
 		})
 		return
 	}
