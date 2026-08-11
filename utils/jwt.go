@@ -2,11 +2,12 @@ package utils
 
 import (
 	"time"
+	"os"
 
 	"github.com/golang-jwt/jwt/v5"
 )
 
-var jwtSecret = []byte("REMOVED_SECRET")
+var jwtSecret = []byte(os.Getenv("JWT_SECRET"))
 
 func GenerateToken(userID int, email string) (string, error) {
 

@@ -4,6 +4,7 @@ import (
 	"database/sql"
 	"fmt"
 	"log"
+	"os"
 
 	_ "github.com/lib/pq"
 )
@@ -15,7 +16,7 @@ func ConnectDB() {
 	host := "localhost"
 	port := 5432
 	user := "postgres"
-	password := "REMOVED_SECRET"
+	password := os.Getenv("DB_PASSWORD")
 	dbname := "ai-chatbot"
 
 	psqlInfo := fmt.Sprintf(

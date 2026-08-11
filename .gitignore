@@ -1,0 +1,19 @@
+# Environment variables
+.env
+
+# Uploaded PDF files
+uploads/
+
+# Go build files
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+
+# IDE files
+.vscode/
+
+# OS files
+.DS_Store
+Thumbs.db
