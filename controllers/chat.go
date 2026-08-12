@@ -32,6 +32,16 @@ func Chat(c *gin.Context) {
 
 	userID := c.GetInt("userID")
 
+	// Verify that the session belongs to the authenticated user
+	_, err := repository.GetSession(req.SessionID, userID)
+
+	if err != nil {
+		c.JSON(http.StatusForbidden, gin.H{
+			"error": "You do not have access to this session",
+		})
+		return
+	}
+
 	// 1. Load recent conversation history
 	recentChats, err := repository.GetRecentChats(
 		userID,

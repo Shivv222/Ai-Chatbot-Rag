@@ -148,3 +148,32 @@ func DeleteSession(sessionID int, userID int) error {
 
 	return err
 }
+
+func GetSession(sessionID int, userID int) (*models.ChatSession, error) {
+
+	query := `
+	SELECT id, user_id, title, created_at
+	FROM chat_sessions
+	WHERE id = $1
+	AND user_id = $2
+	`
+
+	var session models.ChatSession
+
+	err := config.DB.QueryRow(
+		query,
+		sessionID,
+		userID,
+	).Scan(
+		&session.ID,
+		&session.UserID,
+		&session.Title,
+		&session.CreatedAt,
+	)
+
+	if err != nil {
+		return nil, err
+	}
+
+	return &session, nil
+}
