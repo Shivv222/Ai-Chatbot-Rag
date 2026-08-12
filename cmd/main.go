@@ -30,17 +30,19 @@ func main() {
 
 	router.POST("/chat", middleware.AuthMiddleware(), controllers.Chat)
 
-	router.GET("/chat/history", middleware.AuthMiddleware(), controllers.GetChatHistory,)
+	router.POST("/documents/upload", middleware.AuthMiddleware(), controllers.UploadDocument)
 
-	router.POST("/session", middleware.AuthMiddleware(), controllers.CreateSession,)
+	router.GET("/chat/history", middleware.AuthMiddleware(), controllers.GetChatHistory)
 
-	router.GET("/sessions", middleware.AuthMiddleware(), controllers.GetSessions,)
+	router.POST("/session", middleware.AuthMiddleware(), controllers.CreateSession)
 
-	router.GET("/sessions/:id", middleware.AuthMiddleware(), controllers.GetSessionChats,)
+	router.GET("/sessions", middleware.AuthMiddleware(), controllers.GetSessions)
+
+	router.GET("/sessions/:id", middleware.AuthMiddleware(), controllers.GetSessionChats)
 
 	router.PUT("/sessions/:id", middleware.AuthMiddleware(), controllers.UpdateSession)
 
-	router.DELETE("/sessions/:id", middleware.AuthMiddleware(), controllers.DeleteSession,)
+	router.DELETE("/sessions/:id", middleware.AuthMiddleware(), controllers.DeleteSession)
 
 	router.Run((":8080"))
 }

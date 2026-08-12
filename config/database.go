@@ -14,10 +14,10 @@ var DB *sql.DB
 func ConnectDB() {
 
 	host := "localhost"
-	port := 5432
+	port := 5433
 	user := "postgres"
 	password := os.Getenv("DB_PASSWORD")
-	dbname := "ai-chatbot"
+	dbname := "rag_db"
 
 	psqlInfo := fmt.Sprintf(
 		"host=%s port=%d user=%s password=%s dbname=%s sslmode=disable",

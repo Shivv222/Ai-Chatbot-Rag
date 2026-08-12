@@ -33,7 +33,11 @@ func Chat(c *gin.Context) {
 	userID := c.GetInt("userID")
 
 	// 1. Load recent conversation history
-	recentChats, err := repository.GetRecentChats(userID, 5)
+	recentChats, err := repository.GetRecentChats(
+		userID,
+		req.SessionID,
+		5,
+	)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{
 			"error": "Failed to load recent chats",
