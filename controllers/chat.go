@@ -5,7 +5,6 @@ import (
 	"Ai-Chatbot-Rag/services"
 	"fmt"
 	"net/http"
-	"strings"
 
 	"github.com/gin-gonic/gin"
 )
@@ -25,29 +24,32 @@ func Chat(c *gin.Context) {
 
 	if err := c.ShouldBindJSON(&req); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{
-			"error": "Prompt is required",
+			"error": "session_id and prompt are required",
 		})
 		return
 	}
 
 	userID := c.GetInt("userID")
 
-	// Verify that the session belongs to the authenticated user
-	_, err := repository.GetSession(req.SessionID, userID)
+	// 1. Verify that this session belongs to the logged-in user
+	session, err := repository.GetSession(req.SessionID, userID)
 
 	if err != nil {
-		c.JSON(http.StatusForbidden, gin.H{
-			"error": "You do not have access to this session",
+		c.JSON(http.StatusNotFound, gin.H{
+			"error": "Session not found",
 		})
 		return
 	}
 
-	// 1. Load recent conversation history
+	_ = session
+
+	// 2. Load recent chats from THIS session only
 	recentChats, err := repository.GetRecentChats(
 		userID,
 		req.SessionID,
 		5,
 	)
+
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{
 			"error": "Failed to load recent chats",
@@ -55,27 +57,11 @@ func Chat(c *gin.Context) {
 		return
 	}
 
-	var builder strings.Builder
-
-	builder.WriteString("Previous Conversation:\n\n")
-
-	for i := len(recentChats) - 1; i >= 0; i-- {
-
-		builder.WriteString(fmt.Sprintf(
-			"User: %s\n",
-			recentChats[i].UserMessage,
-		))
-
-		builder.WriteString(fmt.Sprintf(
-			"AI: %s\n\n",
-			recentChats[i].AIResponse,
-		))
-	}
-
-	// 2. Generate RAG answer and retrieve sources
-	ragResponse, sources, err := services.AskRAG(
+	// 3. RAG + ONE Gemini call
+	response, sources, err := services.AskRAG(
 		req.Prompt,
 		userID,
+		recentChats,
 	)
 
 	if err != nil {
@@ -88,29 +74,7 @@ func Chat(c *gin.Context) {
 		return
 	}
 
-	// 3. Add RAG response to conversation context
-	builder.WriteString("Document Context Answer:\n")
-	builder.WriteString(ragResponse)
-	builder.WriteString("\n\n")
-
-	builder.WriteString(fmt.Sprintf(
-		"Current User: %s",
-		req.Prompt,
-	))
-
-	fullPrompt := builder.String()
-
-	// 4. Generate final response using Gemini
-	response, err := services.AskGemini(fullPrompt)
-
-	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{
-			"error": err.Error(),
-		})
-		return
-	}
-
-	// 5. Save chat history
+	// 4. Save chat history
 	err = repository.SaveChat(
 		req.SessionID,
 		userID,
@@ -128,7 +92,7 @@ func Chat(c *gin.Context) {
 		return
 	}
 
-	// 6. Return response and sources
+	// 5. Return response and sources
 	c.JSON(http.StatusOK, gin.H{
 		"response": response,
 		"sources":  sources,
@@ -165,12 +129,10 @@ func CreateSession(c *gin.Context) {
 
 	userID := c.GetInt("userID")
 
-	title, err := services.GenerateChatTitle(req.FirstMessage)
-	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{
-			"error": "Failed to generate chat title",
-		})
-		return
+	title := req.FirstMessage
+
+	if len(title) > 50 {
+		title = title[:50] + "..."
 	}
 
 	sessionID, err := repository.CreateSession(

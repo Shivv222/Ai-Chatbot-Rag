@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"strings"
 
+	"Ai-Chatbot-Rag/models"
 	"Ai-Chatbot-Rag/repository"
 )
 
@@ -13,7 +14,11 @@ type RAGSource struct {
 	Similarity float64 `json:"similarity"`
 }
 
-func AskRAG(question string, userID int) (string, []RAGSource, error) {
+func AskRAG(
+	question string,
+	userID int,
+	recentChats []models.ChatHistory,
+) (string, []RAGSource, error) {
 
 	// 1. Generate embedding for the user's question
 	embedding, err := GenerateEmbedding(question)
@@ -55,6 +60,7 @@ func AskRAG(question string, userID int) (string, []RAGSource, error) {
 	for _, result := range results {
 
 		if !seen[result.DocumentID] {
+
 			sources = append(sources, RAGSource{
 				DocumentID: result.DocumentID,
 				FileName:   result.FileName,
@@ -65,31 +71,52 @@ func AskRAG(question string, userID int) (string, []RAGSource, error) {
 		}
 	}
 
-	// 5. Create prompt
+	// 5. Build conversation history
+	var historyBuilder strings.Builder
+
+	for i := len(recentChats) - 1; i >= 0; i-- {
+
+		historyBuilder.WriteString(
+			fmt.Sprintf(
+				"User: %s\nAI: %s\n\n",
+				recentChats[i].UserMessage,
+				recentChats[i].AIResponse,
+			),
+		)
+	}
+
+	history := historyBuilder.String()
+
+	// 6. Create ONE Gemini prompt
 	prompt := fmt.Sprintf(`
 You are a helpful AI assistant.
 
-Answer the user's question using the provided document context.
+Answer the user's current question using the provided document context.
+
+CONVERSATION HISTORY:
+%s
 
 DOCUMENT CONTEXT:
 %s
 
-USER QUESTION:
+CURRENT USER QUESTION:
 %s
 
 Instructions:
 
-- Use the retrieved document context to answer the question.
+- Use the retrieved document context when it is relevant.
+- Use the conversation history to understand follow-up questions.
 - Do not invent information.
-- Keep the answer relevant to the user's question.
-`, context, question)
+- If the answer is not available in the document context, clearly say so.
+- Keep the answer relevant and concise.
+`, history, context, question)
 
-	// 6. Ask Gemini
+	// 7. ONE Gemini call
 	answer, err := AskGemini(prompt)
 	if err != nil {
 		return "", nil, err
 	}
 
-	// 7. Return answer + sources
+	// 8. Return answer + sources
 	return answer, sources, nil
 }
