@@ -29,12 +29,32 @@ func AskRAG(
 	// 2. Search relevant chunks from this user's documents
 	results, err := repository.SearchSimilarChunks(
 		embedding,
-		3,
+		5,
 		userID,
 	)
 	if err != nil {
 		return "", nil, err
 	}
+
+	// Strict grounding threshold
+	const similarityThreshold = 0.65
+
+	// Keep only sufficiently relevant chunks
+	var relevantResults []repository.SimilarChunk
+
+	for _, result := range results {
+		if result.Similarity >= similarityThreshold {
+			relevantResults = append(relevantResults, result)
+		}
+	}
+
+	// No sufficiently relevant document context found
+	if len(relevantResults) == 0 {
+		return "I couldn't find enough relevant information in the uploaded documents to answer this question.", nil, nil
+	}
+
+	// Use only relevant results from this point onward
+	results = relevantResults
 
 	// 3. Build document context
 	var contextBuilder strings.Builder
@@ -89,9 +109,10 @@ func AskRAG(
 
 	// 6. Create ONE Gemini prompt
 	prompt := fmt.Sprintf(`
-You are a helpful AI assistant.
+You are a document question-answering assistant.
 
-Answer the user's current question using the provided document context.
+Your job is to answer the CURRENT USER QUESTION using ONLY the information
+contained in the DOCUMENT CONTEXT and relevant CONVERSATION HISTORY.
 
 CONVERSATION HISTORY:
 %s
@@ -102,13 +123,40 @@ DOCUMENT CONTEXT:
 CURRENT USER QUESTION:
 %s
 
-Instructions:
+STRICT RULES:
 
-- Use the retrieved document context when it is relevant.
-- Use the conversation history to understand follow-up questions.
-- Do not invent information.
-- If the answer is not available in the document context, clearly say so.
-- Keep the answer relevant and concise.
+1. Use the DOCUMENT CONTEXT as the primary source of truth.
+
+2. Do NOT use outside knowledge, assumptions, guesses, or information
+   that is not supported by the DOCUMENT CONTEXT.
+
+3. If the answer is explicitly available in the DOCUMENT CONTEXT,
+   answer it clearly and directly.
+
+4. If the CURRENT USER QUESTION is a follow-up question, you may use the
+   CONVERSATION HISTORY to understand what the user is referring to.
+   However, the actual factual answer must still be supported by the
+   DOCUMENT CONTEXT.
+
+5. If the DOCUMENT CONTEXT does not contain enough information to answer
+   the question, respond exactly:
+   "I could not find this information in the uploaded document."
+
+6. Do NOT try to answer from general knowledge when the document does
+   not contain the answer.
+
+7. Do NOT invent names, dates, numbers, percentages, facts, or conclusions.
+
+8. Keep the answer concise and directly related to the user's question.
+
+9. When answering using document information, mention the relevant
+   source document filename when it helps clarify where the information
+   came from.
+
+10. Do not cite or mention a document unless the information used in
+    the answer actually comes from that document.
+
+Answer:
 `, history, context, question)
 
 	// 7. ONE Gemini call
