@@ -10,8 +10,9 @@ import (
 )
 
 type ChatRequest struct {
-	SessionID int    `json:"session_id" binding:"required"`
-	Prompt    string `json:"prompt" binding:"required"`
+	SessionID  int    `json:"session_id" binding:"required"`
+	DocumentID int    `json:"document_id" binding:"required"`
+	Prompt     string `json:"prompt" binding:"required"`
 }
 
 type CreateSessionRequest struct {
@@ -24,7 +25,7 @@ func Chat(c *gin.Context) {
 
 	if err := c.ShouldBindJSON(&req); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{
-			"error": "session_id and prompt are required",
+			"error": "session_id, document_id and prompt are required",
 		})
 		return
 	}
@@ -61,6 +62,7 @@ func Chat(c *gin.Context) {
 	response, sources, err := services.AskRAG(
 		req.Prompt,
 		userID,
+		req.DocumentID,
 		recentChats,
 	)
 

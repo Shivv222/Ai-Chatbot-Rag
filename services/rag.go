@@ -17,6 +17,7 @@ type RAGSource struct {
 func AskRAG(
 	question string,
 	userID int,
+	documentID int,
 	recentChats []models.ChatHistory,
 ) (string, []RAGSource, error) {
 
@@ -31,6 +32,7 @@ func AskRAG(
 		embedding,
 		5,
 		userID,
+		documentID,
 	)
 	if err != nil {
 		return "", nil, err

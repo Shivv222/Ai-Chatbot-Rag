@@ -92,6 +92,7 @@ func SearchSimilarChunks(
 	embedding []float32,
 	limit int,
 	userID int,
+	documentID int,
 ) ([]SimilarChunk, error) {
 
 	values := make([]string, len(embedding))
@@ -112,9 +113,10 @@ func SearchSimilarChunks(
 	JOIN documents d
 		ON dc.document_id = d.id
 	WHERE dc.embedding IS NOT NULL
-	AND d.user_id = $3
-	ORDER BY dc.embedding <=> $1
-	LIMIT $2
+    AND d.user_id = $3
+    AND d.id = $4
+    ORDER BY dc.embedding <=> $1
+    LIMIT $2
 	`
 
 	rows, err := config.DB.Query(
@@ -122,6 +124,7 @@ func SearchSimilarChunks(
 		vector,
 		limit,
 		userID,
+		documentID,
 	)
 
 	if err != nil {
