@@ -40,6 +40,8 @@ func main() {
 
 	router.POST("/documents/upload", middleware.AuthMiddleware(), controllers.UploadDocument)
 
+	router.GET("/documents", middleware.AuthMiddleware(), controllers.GetDocuments)
+
 	router.GET("/chat/history", middleware.AuthMiddleware(), controllers.GetChatHistory)
 
 	router.POST("/session", middleware.AuthMiddleware(), controllers.CreateSession)

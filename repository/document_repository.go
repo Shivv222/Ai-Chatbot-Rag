@@ -157,3 +157,47 @@ func SearchSimilarChunks(
 
 	return results, nil
 }
+func GetDocuments(userID int) ([]map[string]interface{}, error) {
+
+	query := `
+	SELECT id, file_name
+	FROM documents
+	WHERE user_id = $1
+	ORDER BY id DESC
+	`
+
+	rows, err := config.DB.Query(query, userID)
+	if err != nil {
+		return nil, err
+	}
+
+	defer rows.Close()
+
+	var documents []map[string]interface{}
+
+	for rows.Next() {
+
+		var id int
+		var fileName string
+
+		err := rows.Scan(
+			&id,
+			&fileName,
+		)
+
+		if err != nil {
+			return nil, err
+		}
+
+		documents = append(documents, map[string]interface{}{
+			"id":        id,
+			"file_name": fileName,
+		})
+	}
+
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+
+	return documents, nil
+}

@@ -118,3 +118,19 @@ func UploadDocument(c *gin.Context) {
 		"document_id": documentID,
 	})
 }
+
+func GetDocuments(c *gin.Context) {
+
+	userID := c.GetInt("userID")
+
+	documents, err := repository.GetDocuments(userID)
+
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"error": "Failed to fetch documents",
+		})
+		return
+	}
+
+	c.JSON(http.StatusOK, documents)
+}
